@@ -1,9 +1,10 @@
-from email_utils import get_access_token, fetch_unread_emails
+from email_utils import get_token, fetch_unread_emails
 from agent import categorize_and_draft
 
 def main():
-    token = get_access_token()
-    emails = fetch_unread_emails(token)
+    token = get_token()
+    n = 1  # or prompt user for input
+    emails = fetch_unread_emails(token, n)
 
     print(f"Found {len(emails)} unread emails.")
 

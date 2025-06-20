@@ -1,8 +1,9 @@
 from langchain_community.llms import Ollama
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
+import re
 
-llm = Ollama(model="mistral")
+llm = Ollama(model="mistral", verbose=True)  # verbose=True to see more LangChain logs
 
 prompt_template = """
 You are an email assistant.
@@ -28,7 +29,16 @@ Reply 3: <reply text>
 """
 
 prompt = PromptTemplate(input_variables=["subject", "body"], template=prompt_template)
-email_chain = LLMChain(llm=llm, prompt=prompt)
+email_chain = LLMChain(llm=llm, prompt=prompt, verbose=True)  # verbose=True here too
 
 def categorize_and_draft(subject, body):
-    return email_chain.run({"subject": subject, "body": body})
+    raw_output = email_chain.run({"subject": subject, "body": body})
+    
+    # Parse the output
+    category_match = re.search(r"Category:\s*(.*)", raw_output)
+    reply_matches = re.findall(r"Reply \d+:\s*(.*)", raw_output)
+
+    category = category_match.group(1).strip() if category_match else "Unknown"
+    drafts = [reply.strip() for reply in reply_matches]
+
+    return category, drafts

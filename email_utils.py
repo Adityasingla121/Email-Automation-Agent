@@ -1,51 +1,49 @@
 import os
 import requests
 import msal
+from dotenv import load_dotenv
+
+load_dotenv()
 
 CLIENT_ID = os.getenv("CLIENT_ID")
 TENANT_ID = os.getenv("TENANT_ID")
+
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
 SCOPE = ["Mail.Read", "Mail.Send"]
 
-def get_access_token():
-    app = msal.PublicClientApplication(
-        client_id=CLIENT_ID,
-        authority=AUTHORITY
-    )
+app = msal.PublicClientApplication(
+    CLIENT_ID,
+    authority=AUTHORITY
+)
 
+token_result = None
+
+def get_token():
+    global token_result
     accounts = app.get_accounts()
-    result = None
-
     if accounts:
-        print(f"Found cached account: {accounts[0]['username']}")
-        result = app.acquire_token_silent(SCOPE, account=accounts[0])
-
-    if not result:
-        print("No valid cached token — opening browser for login...")
-        result = app.acquire_token_interactive(
-            scopes=SCOPE,
-            prompt="login"
-        )
-
-    if "access_token" in result:
-        return result["access_token"]
+        token_result = app.acquire_token_silent(SCOPE, account=accounts[0])
+    if not token_result:
+        token_result = app.acquire_token_interactive(scopes=SCOPE)
+    if "access_token" in token_result:
+        return token_result["access_token"]
     else:
-        raise Exception(f"Token acquisition failed: {result.get('error_description', result.get('error'))}")
+        raise Exception(f"Token error: {token_result.get('error_description', token_result)}")
 
-def fetch_unread_emails(token):
-    headers = {"Authorization": f"Bearer {token}"}
-    graph_endpoint = "https://graph.microsoft.com/v1.0/me/messages?$filter=isRead eq false"
-    response = requests.get(graph_endpoint, headers=headers)
-
-    if response.status_code == 200:
-        messages = response.json().get("value", [])
-        return messages
-    else:
-        raise Exception(f"API call failed: {response.status_code} {response.text}")
-    
-def send_email(token, to_address, subject, body):
+def fetch_unread_emails(access_token, n):
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {access_token}"
+    }
+    url = f"https://graph.microsoft.com/v1.0/me/messages?$filter=isRead eq false&$top={n}"
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        return response.json().get("value", [])
+    else:
+        raise Exception(f"Fetch failed: {response.status_code}, {response.text}")
+
+def send_email(access_token, to_address, subject, body):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
     data = {
@@ -64,11 +62,9 @@ def send_email(token, to_address, subject, body):
             ]
         }
     }
-    graph_endpoint = "https://graph.microsoft.com/v1.0/me/sendMail"
-    response = requests.post(graph_endpoint, headers=headers, json=data)
-    
+    url = "https://graph.microsoft.com/v1.0/me/sendMail"
+    response = requests.post(url, headers=headers, json=data)
     if response.status_code == 202:
         return "Email sent successfully."
     else:
-        return f"Failed to send email: {response.status_code}, {response.text}"
-
+        return f"Send failed: {response.status_code}, {response.text}"
