@@ -1,4 +1,4 @@
-#!/Users/adityasingla/Downloads/Email Automation Agent/email_automation_env/bin/python3.10
+#!/Users/adityasingla/Downloads/Email Automation Agent/email_automation_env/bin/python3.13
 """A command line tool for extracting text and images from PDF and
 output it to plain text, html, xml or tags.
 """

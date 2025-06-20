@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/Users/adityasingla/Downloads/Email Automation Agent/email_automation_env/bin/python3.10" "$0" "$@"
+'''exec' "/Users/adityasingla/Downloads/Email Automation Agent/email_automation_env/bin/python3.13" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re
